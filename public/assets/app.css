@@ -23,6 +23,10 @@ form {
   --color-primary-hover: #992b1e;
   --color-focus: #245ab4;
   --color-danger: #a52b25;
+  --color-priority-urgente: #a52b25;
+  --color-priority-alta: #b8742b;
+  --color-priority-media: #686864;
+  --color-priority-baja: #2f7a4d;
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -129,10 +133,17 @@ h1 {
   border-bottom: 1px solid var(--color-border);
 }
 
-.task-title {
+.task-main {
   align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.6rem;
   min-width: 0;
   padding: 0.65rem 0;
+}
+
+.task-title {
   overflow-wrap: anywhere;
   line-height: 1.55;
 }
@@ -377,6 +388,32 @@ input:focus-visible {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--color-border);
+}
+
+.task-priority {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.task-priority-urgente {
+  color: var(--color-priority-urgente);
+}
+
+.task-priority-alta {
+  color: var(--color-priority-alta);
+}
+
+.task-priority-media {
+  color: var(--color-priority-media);
+}
+
+.task-priority-baja {
+  color: var(--color-priority-baja);
 }
 
 .sr-only,

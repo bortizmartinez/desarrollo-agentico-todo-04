@@ -59,6 +59,49 @@ func (as *ActionSuite) Test_TasksCreate_OnlySpaces_Invalid() {
 	as.Equal(0, count)
 }
 
+func (as *ActionSuite) Test_TasksCreate_WithoutPriority_DefaultsToMedia() {
+	res := as.HTML("/tasks").Post(&models.Task{Title: "Tarea sin prioridad"})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.First(task))
+	as.Equal("media", task.Priority)
+}
+
+func (as *ActionSuite) Test_TasksCreate_WithPriority_Persists() {
+	for _, priority := range models.ValidPriorities {
+		as.NoError(as.DB.TruncateAll())
+
+		res := as.HTML("/tasks").Post(&models.Task{Title: "Tarea con prioridad", Priority: priority})
+		as.Equal(303, res.Code)
+
+		task := &models.Task{}
+		as.NoError(as.DB.First(task))
+		as.Equal(priority, task.Priority)
+	}
+}
+
+func (as *ActionSuite) Test_TasksCreate_InvalidPriority_Returns422() {
+	res := as.HTML("/tasks").Post(&models.Task{Title: "Tarea con prioridad inválida", Priority: "no-existe"})
+	as.Equal(422, res.Code)
+	as.Contains(res.Body.String(), "La prioridad no es válida.")
+
+	count, err := as.DB.Count(&models.Task{})
+	as.NoError(err)
+	as.Equal(0, count)
+}
+
+func (as *ActionSuite) Test_TasksIndex_ShowsPriorityLabel() {
+	task := &models.Task{Title: "Tarea prioritaria", Priority: "alta"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), "Alta")
+}
+
 func (as *ActionSuite) Test_TasksToggle_CompletesAndReopens() {
 	task := &models.Task{Title: "Pendiente de completar"}
 	verrs, err := as.DB.ValidateAndCreate(task)
@@ -136,6 +179,13 @@ func (as *ActionSuite) Test_TasksEdit_PrefillsTitle() {
 	as.Contains(res.Body.String(), "Cancelar")
 	as.NoError(as.DB.Reload(task))
 	as.True(task.Completed)
+}
+
+func (as *ActionSuite) Test_TasksEdit_DoesNotShowPriorityField() {
+	task := as.taskForEditing(false)
+	res := as.HTML("/tasks/%s/edit", task.ID).Get()
+	as.Equal(200, res.Code)
+	as.NotContains(res.Body.String(), `name="priority"`)
 }
 
 func (as *ActionSuite) Test_TasksEdit_NotFound() {
@@ -226,6 +276,22 @@ func (as *ActionSuite) Test_TasksUpdate_TitleAtLimit() {
 	as.Equal(303, res.Code)
 	as.NoError(as.DB.Reload(task))
 	as.Equal(title, task.Title)
+}
+
+func (as *ActionSuite) Test_TasksUpdate_IgnoresPriority() {
+	task := &models.Task{Title: "Título original", Priority: "urgente"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{
+		"title": {"Título actualizado"}, "priority": {"baja"},
+	})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Título actualizado", task.Title)
+	as.Equal("urgente", task.Priority)
 }
 
 func (as *ActionSuite) Test_TasksUpdate_NotFound() {
